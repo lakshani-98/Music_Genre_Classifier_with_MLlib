@@ -1,11 +1,11 @@
 # 🎧 Music_Genre_Classifier_with_MLlib
 
-📖 Overview
+# 📖 Overview
 This project extends the foundation laid by Taras Matyashovskyy's binary music classifier using Apache Spark's MLlib. Instead of classifying only "Pop" and "Metal," this system scales up to classify lyrics into eight music genres:
 
 'pop', 'country', 'blues', 'rock', 'jazz', 'reggae', 'hip hop','shoegaze'
 
-🧠 Goals
+# 🧠 Goals
 Improve classification accuracy for multi-class genre prediction
 
 Add support for a previously unsupported music genre
@@ -16,7 +16,7 @@ Provide visual feedback using pie/bar charts
 
 Use MLlib pipelines for scalable and efficient training
 
-📁 Datasets
+# 📁 Datasets
 1. Mendeley Dataset
 Source: Publicly available (26MB)
 
@@ -36,7 +36,7 @@ Combined the above two datasets for training/testing
 
 Used for 8-class classification
 
-🛠️ Tools & Technologies
+# 🛠️ Tools & Technologies
 Apache Spark MLlib (NLP + classification pipeline)
 
 Python
@@ -44,7 +44,7 @@ Python
 Flask
 
 
-📈 ML Pipeline
+# 📈 ML Pipeline
 Tokenization and text preprocessing
 
 Label encoding of genres
@@ -55,7 +55,7 @@ Evaluation using an 80/20 train-test split
 
 Model saving and integration into the web UI
 
-🌐 Web Interface Features
+# 🌐 Web Interface Features
 Input box for pasting lyrics
 
 Submit button to classify
