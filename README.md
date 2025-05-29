@@ -1,4 +1,4 @@
-# 🎧 Music_Genre_Classifier_with_MLlib
+# 🎧 GenreGenius: MLlib-Powered Lyric-Based Classification
 
 # 📖 Overview
 This project extends the foundation laid by Taras Matyashovskyy's binary music classifier using Apache Spark's MLlib. Instead of classifying only "Pop" and "Metal," this system scales up to classify lyrics into eight music genres:
