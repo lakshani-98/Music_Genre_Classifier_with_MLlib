@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Song Genre Predictor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            color: #fff;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 15px;
+            font-size: 28px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            resize: none;
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 16px;
+        }
+
+        textarea::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: #27ae60;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #2ecc71;
+        }
+
+        #chart-container {
+            width: 70%;
+            max-width: 900px;
+            margin: 20px auto;
+            position: relative; 
+            display: flex;
+            align-items: center; 
+            justify-content: center; 
+        }
+
+        canvas {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        #predictionResult{
+            margin-bottom:20px;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 2s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none; /* Initially hidden */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Song Genre Predictor</h1>
+    <div class="container">
+        <textarea id="lyrics" placeholder="Paste your lyrics here..."></textarea>
+        <button onclick="getPrediction()">Classify Genre</button>
+    </div>
+
+    <div id="predictionResult"></div>
+    <div id="chart-container">
+        <canvas id="genreChart" width="400" height="200"></canvas>
+        <div class="loader"></div>
+    </div>
+
+    <script>
+        function getPrediction() {
+            var lyrics = document.getElementById("lyrics").value;
+            var loader = document.querySelector('#chart-container .loader');
+
+            if (!lyrics.trim()) {
+                alert("Please enter some lyrics to classify.");
+                return;
+            }
+
+            loader.style.display = 'block'; // Show loader
+
+            fetch('http://127.0.0.1:5000/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 'lyrics': lyrics })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loader.style.display = 'none'; // Hide loader
+
+                var resultDiv = document.getElementById('predictionResult');
+                resultDiv.innerHTML = ''; // Clear previous results
+
+                let labels = data.predictions.map(item => item[0]);
+                let values = data.predictions.map(item => parseFloat(item[1])); // Convert to float
+
+                // Check if 'None' genre is present and adjust probabilities
+                if (labels.includes('None')) {
+                    let noneIndex = labels.indexOf('None');
+                    let noneProbability = values[noneIndex];
+                    
+                    // Remove 'None' genre and its probability
+                    labels.splice(noneIndex, 1);
+                    values.splice(noneIndex, 1);
+                    
+                    // Distribute the 'None' probability equally among the other genres
+                    let additionalProbability = noneProbability / labels.length;
+                    values = values.map(value => value + additionalProbability);
+                }
+
+                if (data.predicted_genre === null) {
+                    resultDiv.innerHTML = '<p>Not belong to available genre.</p>';
+                } else {
+                    resultDiv.innerHTML = '<p>Predicted Genre: ' + data.predicted_genre + '</p>';
+                }
+
+                // Display the chart with the adjusted probabilities
+                var ctx = document.getElementById('genreChart').getContext('2d');
+
+                if (window.myChart) {
+                    window.myChart.destroy();
+                }
+
+                window.myChart = new Chart(ctx, {
+                    type: 'bar', // Change to bar chart
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Genre Probability',
+                            data: values,
+                            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#FF9F40', '#9966FF', '#FF8C00'], // More colors
+                            borderColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#FF9F40', '#9966FF', '#FF8C00'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', // Horizontal bars
+                        responsive: true,
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                ticks: {
+                                    color: 'white'
+                                }
+                            },
+                            y: {
+                                ticks: {
+                                    color: 'white'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false,
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(tooltipItem) {
+                                        return tooltipItem.label + ": " + tooltipItem.raw.toFixed(4);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                loader.style.display = 'none'; // Hide loader on error
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+
+<!-- <body>
+
+    <h1>Song Genre Predictor</h1>
+    <div class="container">
+        <textarea id="lyrics" placeholder="Paste your lyrics here..."></textarea>
+        <button onclick="getPrediction()">Classify Genre</button>
+    </div>
+
+    <div id="predictionResult"></div>
+    <div id="chart-container">
+        <canvas id="genreChart" width="400" height="200"></canvas>
+        <div class="loader"></div>
+    </div>
+
+    <script>
+        function getPrediction() {
+            var lyrics = document.getElementById("lyrics").value;
+            var loader = document.querySelector('#chart-container .loader');
+
+            if (!lyrics.trim()) {
+                alert("Please enter some lyrics to classify.");
+                return;
+            }
+
+            loader.style.display = 'block'; // Show loader
+
+            fetch('http://127.0.0.1:5000/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 'lyrics': lyrics })
+            })
+            .then(response => response.json())
+            .then(data => {
+                loader.style.display = 'none'; // Hide loader
+
+                var resultDiv = document.getElementById('predictionResult');
+                resultDiv.innerHTML = ''; // Clear previous results
+
+                if (data.predicted_genre === null) {
+                    resultDiv.innerHTML = '<p>Not belong to available genre.</p>';
+                    if (window.myChart) {
+                        window.myChart.destroy();
+                    }
+                } else {
+                    resultDiv.innerHTML = '<p>Predicted Genre: ' + data.predicted_genre + '</p>';
+
+                    let labels = data.predictions.map(item => item[0]);
+                    let values = data.predictions.map(item => parseFloat(item[1])); // Convert to float
+
+                    var ctx = document.getElementById('genreChart').getContext('2d');
+
+                    if (window.myChart) {
+                        window.myChart.destroy();
+                    }
+
+                    window.myChart = new Chart(ctx, {
+                        type: 'bar', // Change to bar chart
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Genre Probability',
+                                data: values,
+                                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#FF9F40', '#9966FF', '#FF8C00'], // More colors
+                                borderColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#FF9F40', '#9966FF', '#FF8C00'],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y', // Horizontal bars
+                            responsive: true,
+                            scales: {
+                                x: {
+                                    beginAtZero: true,
+                                    ticks: {
+                                        color: 'white'
+                                    }
+                                },
+                                y: {
+                                    ticks: {
+                                        color: 'white'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: {
+                                    display: false,
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(tooltipItem) {
+                                            return tooltipItem.label + ": " + tooltipItem.raw.toFixed(4);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            })
+            .catch(error => {
+                loader.style.display = 'none'; // Hide loader on error
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body> -->
+</html>
